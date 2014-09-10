@@ -25,6 +25,8 @@ module RestClient
   # * :ssl_client_cert, :ssl_client_key, :ssl_ca_file
   class Request
 
+    @@in_credentials = false
+
     attr_reader :method, :url, :headers, :cookies,
                 :payload, :user, :password, :timeout, :max_redirects,
                 :open_timeout, :raw_response, :verify_ssl, :ssl_client_cert,
@@ -188,10 +190,12 @@ module RestClient
     end
 
     def setup_credentials(uri, req)
-      if user 
+      return if @@in_credentials
+      if user
         urii = uri.clone
         urii.user = nil
         urii.password = nil
+        @@in_credentials = true
         RestClient.head(urii.to_s) { |response, request, result|
           if result['www-authenticate'] =~ /Digest realm=/
             digest_auth = Net::HTTP::DigestAuth.new
@@ -204,6 +208,7 @@ module RestClient
             req.basic_auth(user, password)
           end
         }
+        @@in_credentials = false
       end
     end
 
